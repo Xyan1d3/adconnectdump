@@ -2,6 +2,7 @@ import argparse
 import codecs
 import logging
 import os
+import re
 import time
 import sys
 import ntpath
@@ -72,12 +73,21 @@ class ADSRemoteOperations(RemoteOperations):
             return
         self.__connectSvcCtl()
         try:
+            if self.__options.db_path == None:
+                self.__options.db_path = 'Program Files\\Microsoft Azure AD Sync\\Data\\'
             self.__checkServiceStatus()
-            logging.info('Downloading ADSync database files')
+            self.__options.db_path = re.sub(r"^[a-zA-Z]:\\", "", self.__options.db_path)
+            logging.info(f'Downloading ADSync database files from the path smb:\\\\C$\{self.__options.db_path}')
             with open('ADSync.mdf','wb') as fh:
-                self.__smbConnection.getFile('C$',r'Program Files\Microsoft Azure AD Sync\Data\ADSync.mdf', fh.write)
+                try:
+                    self.__smbConnection.getFile('C$',f'{self.__options.db_path}ADSync.mdf', fh.write)
+                except:
+                    logging.error(f'Could not find file smb:\\\\C$\{self.__options.db_path}ADSync.mdf')
             with open('ADSync_log.LDF','wb') as fh:
-                self.__smbConnection.getFile('C$',r'Program Files\Microsoft Azure AD Sync\Data\ADSync_log.ldf', fh.write)
+                try:
+                    self.__smbConnection.getFile('C$',f'{self.__options.db_path}ADSync_log.ldf', fh.write)
+                except:
+                    logging.error(f'Could not find file smb:\\\\C$\{self.__options.db_path}ADSync_log.ldf')
         finally:
             self.__restore_adsync()
 
@@ -600,6 +610,8 @@ if __name__ == '__main__':
                         help='Read the output of ADSyncQuery from a file you created previously instead of doing it live')
     parser.add_argument('-outputfile', action='store',
                         help='base output filename. Extensions will be added for sam, secrets, cached and ntds')
+    parser.add_argument('--db-path', action='store', metavar="FILE",
+                        help='Path to the ADSync.mdf and the ADSync_log.LDF files. (Default: C:\\Program Files\\Microsoft Azure AD Sync\\Data\\)')
     group = parser.add_argument_group('authentication')
 
     group.add_argument('-hashes', action="store", metavar = "LMHASH:NTHASH", help='NTLM hashes, format is LMHASH:NTHASH')
@@ -627,7 +639,6 @@ if __name__ == '__main__':
     else:
         logging.getLogger().setLevel(logging.INFO)
 
-    import re
 
     domain, username, password, remoteName = re.compile('(?:(?:([^/@:]*)/)?([^@:]*)(?::([^@]*))?@)?(.*)').match(
         options.target).groups('')
